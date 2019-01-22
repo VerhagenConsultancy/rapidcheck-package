@@ -1,0 +1,36 @@
+commands:
+    build: Build all packages
+    build-pkgbuild: Build PKGBUILD package
+    clean: Clean the build
+
+patterns:
+    TARGET:
+        default-values:
+            - all
+        short-option: t
+        long-option: target
+
+    BUILDDIR:
+        default-values:
+            - ${PWD}/build
+
+build:
+    - build-pkgbuild
+
+build-pkgbuild:
+    - command-line-command
+
+clean:
+    - command-line-command
+
+command-line-command:
+    build-pkgbuild:
+        patterns:
+            - TARGET
+            - BUILDDIR
+        command-line: [make, --directory, pkgbuild-generator, PROJECT_NAME=rapidcheck, "SOURCE_DIR=${PWD}/rapidcheck", "PKG_IN=${PWD}/PKGBUILD.in", "GITCHANGELOG_RC=${PWD}/.gitchangelog.rc", "BUILD_DIR={BUILDDIR}", --debug, "{TARGET}"]
+
+    clean:
+        patterns:
+            - BUILDDIR
+        command-line: [rm, --recursive, --force, "{BUILDDIR}"]
