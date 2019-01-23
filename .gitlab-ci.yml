@@ -1,6 +1,8 @@
 image: bverhagen/pacman-aur-wrapper
 variables:
-      GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_STRATEGY: normal
+    PREFIX: package-src
+    BIN_PREFIX: package-bin
 
 stages:
     - prepare
@@ -42,74 +44,67 @@ stages:
 .pkgbuild:prepare: &pkgbuild_prepare
     stage: prepare
     variables:
-        MAKE_TARGETS: prepare
+        TARGETS: prepare install
+        PREFIX: package-src
     script:
         - sudo pacman -Sy --noconfirm --needed make sed sudo git base-devel lsb-release
         - *install_gitchangelog
-        - echo Making targets= ${MAKE_TARGETS}
-        - make ${MAKE_TARGETS}
+        - exec-helper build --target ${TARGETS} --prefix ${PWD}/${PREFIX}
     artifacts:
         expire_in: 1 day
         paths:
-            - pkgbuild/build_package/*
+            - $PREFIX/*
 
 .pkgbuild:build: &pkgbuild_build
     stage: build
-    variables:
-        BUILD_DIR: pkgbuild/build_package
     script: 
-        - sudo pacman -Sy --noconfirm --needed base-devel sudo lsb-release
-        - cd $BUILD_DIR
+        - sudo pacman -Sy --noconfirm --needed base-devel sudo lsb-release make cmake
+        - pushd ${PREFIX}
         - makepkg --noconfirm --check --needed --syncdeps --force
+        - popd
+        - mkdir -p ${BIN_PREFIX}
+        - mv ${PREFIX}/*.tar.xz ${BIN_PREFIX}/
     artifacts:
         expire_in: 1 day
         paths:
-            - $BUILD_DIR/PKGBUILD
-            - $BUILD_DIR/*.tar.xz
+            - ${BIN_PREFIX}/*
 
 .pkgbuild:analyze: &pkgbuild_analyze
     stage: verify
-    variables:
-        BUILD_DIR: pkgbuild/build_package
-        PACKAGE_DIR: package
     script:
-        - sudo pacman -Sy --noconfirm --needed namcap make lsb-release
-        - make PREFIX=$(pwd)/${PACKAGE_DIR} install
-        - namcap ${PACKAGE_DIR}/PKGBUILD
-        - namcap ${PACKAGE_DIR}/.SRCINFO
-        - namcap ${BUILD_DIR}/*.tar.xz
+        - sudo pacman -Sy --noconfirm --needed namcap
+        - namcap ${PREFIX}/PKGBUILD
+        - namcap ${PREFIX}/.SRCINFO
+        - namcap ${BIN_PREFIX}/*.tar.xz
 
 .pkgbuild:verify: &pkgbuild_verify
     stage: verify
-    variables:
-        BUILD_DIR: pkgbuild/build_package
-        TEST_BUILD_DIR: pkgbuild/build_test
     script:
         - sudo pacman -Sy
-        - sudo pacman --needed --noconfirm -U $BUILD_DIR/*.tar.xz
+        - sudo pacman --needed --noconfirm -U ${BIN_PREFIX}/*.tar.xz
 
 .pkgbuild:upload: &pkgbuild_upload
     stage: upload
     variables:
         URL: INVALID_URL.git
+        PREFIX: package-src
+        GIT_SUBMODULE_STRATEGY: none
     before_script:
         *enable_private_keys
     script:
+        - sudo pacman -Sy --noconfirm --needed git
+        - export SOURCE_HASH=$(git log -C rapidcheck -n 1 --pretty=format:"%H")
         - echo "Cloning ${URL}..."
         - git clone ${URL} repo
         - rm -rf repo/*
-        - sudo pacman -Sy --noconfirm --needed make sed lsb-release sudo git lsb-release
-        - make PREFIX=$(pwd)/repo install
-        - export SOURCE_HASH=$(git log -n 1 --pretty=format:"%H")
+        - mv ${PREFIX}/* repo/
         - git -C repo add .
-        - git -C repo diff-index --quiet HEAD -- && echo 'No changes -- skipping commit' || git -C repo commit -m "Updated package to exec-helper commit ${SOURCE_HASH}"
+        - git -C repo diff-index --quiet HEAD -- && echo 'No changes -- skipping commit' || git -C repo commit -m "Updated package to commit ${SOURCE_HASH}"
         - git -C repo push
 
 pkgbuild:prepare:
     <<: *pkgbuild_prepare
-    image: bverhagen/pacman-aur-wrapper
-    variables:
-        MAKE_TARGETS: pkgbuild TARGET=prepare
+    image: bverhagen/exec-helper-package:arch-linux
 
 pkgbuild:build:
     <<: *pkgbuild_build
@@ -129,13 +124,12 @@ pkgbuild:verify:
     image: bverhagen/pacman-aur-wrapper
     dependencies:
         - pkgbuild:build
-        - pkgbuild:build-test
 
 upload:
     <<: *pkgbuild_upload
     image: bverhagen/pacman-aur-wrapper
     dependencies:
-        - arch-linux:prepare
+        - pkgbuild:prepare
     variables:
         URL: ssh://aur@aur.archlinux.org/rapidcheck.git
     only:
