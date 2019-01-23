@@ -2,3 +2,6 @@
 	path = rapidcheck
 	url = https://github.com/emil-e/rapidcheck.git
 	branch = master
+[submodule "pkgbuild-generator"]
+	path = pkgbuild-generator
+	url = https://github.com/VerhagenConsultancy/pkgbuild-generator.git
