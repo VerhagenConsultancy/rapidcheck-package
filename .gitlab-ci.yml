@@ -74,8 +74,8 @@ stages:
     script:
         - sudo pacman -Sy --noconfirm --needed namcap
         - namcap ${PREFIX}/PKGBUILD
-        - namcap ${PREFIX}/.SRCINFO
-        - namcap ${BIN_PREFIX}/*.tar.xz
+        - "[ `namcap ${BIN_PREFIX}/*.tar.xz | wc -l` -eq 0 ]"     # Namcap does not return an error when it finds something: return a non-zero error code if something is found
+        - "[ `namcap ${BIN_PREFIX}/*.tar.xz | wc -l` -eq 0 ]"     # Namcap does not return an error when it finds something: return a non-zero error code if something is found
 
 .pkgbuild:verify: &pkgbuild_verify
     stage: verify
