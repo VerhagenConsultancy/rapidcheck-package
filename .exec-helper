@@ -2,6 +2,8 @@ commands:
     build: Build all packages
     build-pkgbuild: Build PKGBUILD package
     clean: Clean the build
+    analyze: Analyze all package
+    analyze-pkgbuild: Analyze the PKGBUILD package
 
 patterns:
     TARGET:
@@ -29,6 +31,12 @@ build-pkgbuild:
 clean:
     - command-line-command
 
+analyze:
+    - analyze-pkgbuild
+
+analyze-pkgbuild:
+    - command-line-command
+
 command-line-command:
     build-pkgbuild:
         patterns:
@@ -41,3 +49,10 @@ command-line-command:
         patterns:
             - BUILDDIR
         command-line: [rm, --recursive, --force, "{BUILDDIR}"]
+
+    analyze-pkgbuild:
+        patterns:
+            - BUILDDIR
+        command-line:
+            PKGBUILD: [namcap, build/PKGBUILD]
+            package: [namcap, build/*.tar.xz]
