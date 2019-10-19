@@ -14,7 +14,7 @@ stages:
         echo "nobody ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers                  # Enable sudo to work without prompting a password
 
 .install_gitchangelog: &install_gitchangelog
-        sudo pacman -Sy --noconfirm --needed python curl && sudo sh -c 'curl -sSL https://raw.githubusercontent.com/vaab/gitchangelog/master/src/gitchangelog/gitchangelog.py > /usr/local/bin/gitchangelog' && sudo chmod +x /usr/local/bin/gitchangelog
+        sudo pacman -Sy --noconfirm --needed python curl libidn2 && sudo sh -c 'curl -sSL https://raw.githubusercontent.com/vaab/gitchangelog/master/src/gitchangelog/gitchangelog.py > /usr/local/bin/gitchangelog' && sudo chmod +x /usr/local/bin/gitchangelog
 
 ## This activates the use of the configured private keys in a build pipeline.
 .enable_private_keys: &enable_private_keys
@@ -49,7 +49,7 @@ stages:
     script:
         - sudo pacman -Sy --noconfirm --needed make sed sudo git base-devel lsb-release
         - *install_gitchangelog
-        - exec-helper build --target ${TARGETS} --prefix ${PWD}/${PREFIX}
+        - sudo --preserve-env --user nobody exec-helper build --target ${TARGETS} --prefix ${PWD}/${PREFIX}
     artifacts:
         expire_in: 1 day
         paths:
@@ -60,7 +60,7 @@ stages:
     script: 
         - sudo pacman -Sy --noconfirm --needed base-devel sudo lsb-release make cmake
         - pushd ${PREFIX}
-        - makepkg --noconfirm --check --needed --syncdeps --force
+        - sudo --preserve-env --user nobody makepkg --noconfirm --check --needed --syncdeps --force
         - popd
         - mkdir -p ${BIN_PREFIX}
         - mv ${PREFIX}/*.tar.xz ${BIN_PREFIX}/
@@ -96,8 +96,8 @@ stages:
         - export SOURCE_HASH=$(git log -C rapidcheck -n 1 --pretty=format:"%H")
         - echo "Cloning ${URL}..."
         - git clone ${URL} repo
-        - rm -rf repo/*
-        - mv ${PREFIX}/* repo/
+        - rm -f repo/{.SRCINFO,PKGBUILD,*.changelog}
+        - mv package-source/{.SRCINFO,PKGBUILD,*.changelog} repo/
         - git -C repo add .
         - git -C repo diff-index --quiet HEAD -- && echo 'No changes -- skipping commit' || git -C repo commit -m "Updated package to commit ${SOURCE_HASH}"
         - git -C repo push
