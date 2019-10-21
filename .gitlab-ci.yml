@@ -97,7 +97,7 @@ stages:
         - echo "Cloning ${URL}..."
         - git clone ${URL} repo
         - rm -f repo/{.SRCINFO,PKGBUILD,*.changelog}
-        - mv package-source/{.SRCINFO,PKGBUILD,*.changelog} repo/
+        - mv ${PREFIX}/{.SRCINFO,PKGBUILD,*.changelog} repo/
         - git -C repo add .
         - git -C repo diff-index --quiet HEAD -- && echo 'No changes -- skipping commit' || git -C repo commit -m "Updated package to commit ${SOURCE_HASH}"
         - git -C repo push
