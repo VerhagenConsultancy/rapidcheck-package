@@ -104,7 +104,7 @@ stages:
 
 pkgbuild:prepare:
     <<: *pkgbuild_prepare
-    image: bverhagen/exec-helper-package:arch-linux
+    image: bverhagen/exec-helper:arch-linux
 
 pkgbuild:build:
     <<: *pkgbuild_build
