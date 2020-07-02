@@ -1,4 +1,4 @@
-image: bverhagen/pacman-aur-wrapper
+image: bverhagen/awesome-aur-wrapper
 variables:
     GIT_SUBMODULE_STRATEGY: normal
     PREFIX: package-src
@@ -9,9 +9,6 @@ stages:
     - build
     - verify
     - upload
-
-.enable_sudo_nobody: &enable_sudo_nobody
-        echo "nobody ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers                  # Enable sudo to work without prompting a password
 
 .install_gitchangelog: &install_gitchangelog
         sudo pacman -Sy --noconfirm --needed python curl libidn2 && sudo sh -c 'curl -sSL https://raw.githubusercontent.com/vaab/gitchangelog/master/src/gitchangelog/gitchangelog.py > /usr/local/bin/gitchangelog' && sudo chmod +x /usr/local/bin/gitchangelog
@@ -47,9 +44,9 @@ stages:
         TARGETS: prepare install
         PREFIX: package-src
     script:
-        - sudo pacman -Sy --noconfirm --needed make sed sudo git base-devel lsb-release
+        - sudo pacman -Sy --noconfirm --needed make sed git base-devel lsb-release libffi
         - *install_gitchangelog
-        - sudo --preserve-env --user nobody exec-helper build --target ${TARGETS} --prefix ${PWD}/${PREFIX}
+        - exec-helper build --target ${TARGETS} --prefix ${PWD}/${PREFIX}
     artifacts:
         expire_in: 1 day
         paths:
@@ -58,9 +55,9 @@ stages:
 .pkgbuild:build: &pkgbuild_build
     stage: build
     script: 
-        - sudo pacman -Sy --noconfirm --needed base-devel sudo lsb-release make cmake
+        - sudo pacman -Sy --noconfirm --needed base-devel lsb-release make cmake libffi
         - pushd ${PREFIX}
-        - sudo --preserve-env --user nobody makepkg --noconfirm --check --needed --syncdeps --force
+        - makepkg --noconfirm --check --needed --syncdeps --force
         - popd
         - mkdir -p ${BIN_PREFIX}
         - mv ${PREFIX}/*.tar.xz ${BIN_PREFIX}/
@@ -108,26 +105,26 @@ pkgbuild:prepare:
 
 pkgbuild:build:
     <<: *pkgbuild_build
-    image: bverhagen/pacman-aur-wrapper
+    image: bverhagen/awesome-aur-wrapper
     dependencies:
         - pkgbuild:prepare
 
 pkgbuild:analyze:
     <<: *pkgbuild_analyze
-    image: bverhagen/pacman-aur-wrapper
+    image: bverhagen/awesome-aur-wrapper
     dependencies:
         - pkgbuild:prepare
         - pkgbuild:build
 
 pkgbuild:verify:
     <<: *pkgbuild_verify
-    image: bverhagen/pacman-aur-wrapper
+    image: bverhagen/awesome-aur-wrapper
     dependencies:
         - pkgbuild:build
 
 upload:
     <<: *pkgbuild_upload
-    image: bverhagen/pacman-aur-wrapper
+    image: bverhagen/awesome-aur-wrapper
     dependencies:
         - pkgbuild:prepare
     variables:
