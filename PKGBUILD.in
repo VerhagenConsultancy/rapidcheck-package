@@ -20,11 +20,11 @@ backup=()
 options=()
 install=
 changelog=@CHANGELOG@
-source=("@PACKAGE@::git+$url.git#@GIT_REF@")
+source=("@PACKAGE@::$url/archive/@GIT_REF@.tar.gz")
 noextract=()
 validpgpkeys=()
 
-_git_dir='@PACKAGE@'
+_git_dir='@PACKAGE@-@GIT_REF@'
 _build_dir='build'
 
 _build_targets=('all')
